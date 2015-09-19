@@ -8,7 +8,6 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc.ViewFeatures;
-using Microsoft.AspNet.Testing.xunit;
 using Microsoft.Net.Http.Headers;
 using Xunit;
 
@@ -73,9 +72,7 @@ namespace Microsoft.AspNet.Mvc.FunctionalTests
             Assert.Equal("Foo", body);
         }
 
-        [ConditionalFact]
-        // Mono issue - https://github.com/aspnet/External/issues/21
-        [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
+        [Fact]
         public async Task Redirect_RetainsTempData_EvenIfAccessed()
         {
             // Arrange
@@ -139,9 +136,7 @@ namespace Microsoft.AspNet.Mvc.FunctionalTests
             Assert.Equal("Foo", body);
         }
 
-        [ConditionalFact]
-        // Mono issue - https://github.com/aspnet/External/issues/21
-        [FrameworkSkipCondition(RuntimeFrameworks.Mono)]
+        [Fact]
         public async Task TempData_ValidTypes_RoundTripProperly()
         {
             // Arrange
