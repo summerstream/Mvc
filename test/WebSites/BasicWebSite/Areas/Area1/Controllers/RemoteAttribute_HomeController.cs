@@ -31,7 +31,6 @@ namespace BasicWebSite.Areas.Area1.Controllers
             return RedirectToAction(nameof(Details));
         }
 
-        [HttpGet]
         [Route("/[area]/[controller]/[action]", Name = "Area1Home")]
         public IActionResult Details()
         {
