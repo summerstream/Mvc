@@ -144,7 +144,7 @@ namespace Microsoft.AspNet.Mvc.Formatters
                 return false;
             }
             
-            if (context.ContentType == null)
+            if (context.ContentType == null && context.Matcher == null)
             {
                 // If the desired content type is set to null, then the current formatter can write anything
                 // it wants.
@@ -158,7 +158,22 @@ namespace Microsoft.AspNet.Mvc.Formatters
                     return false;
                 }
             }
-            else
+            else if(context.Matcher != null)
+            {
+                // Confirm this formatter supports a more specific media type than requested e.g. OK if "text/*"
+                // requested and formatter supports "text/plain". contentType is typically what we got in an Accept
+                // header.
+                for (var i = 0; i < SupportedMediaTypes.Count; i++)
+                {
+                    var mediaType = SupportedMediaTypes[i];
+                    if (context.Matcher.IsSuperSetOf(mediaType))
+                    {
+                        context.ContentType = mediaType;
+                        return true;
+                    }
+                }
+            }
+            else if (context.ContentType != null)
             {
                 // Confirm this formatter supports a more specific media type than requested e.g. OK if "text/*"
                 // requested and formatter supports "text/plain". contentType is typically what we got in an Accept

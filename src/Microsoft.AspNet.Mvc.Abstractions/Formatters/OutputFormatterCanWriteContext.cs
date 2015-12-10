@@ -23,6 +23,12 @@ namespace Microsoft.AspNet.Mvc.Formatters
         public virtual MediaTypeHeaderValue ContentType { get; set; }
 
         /// <summary>
+        /// Allows a formatter to evaluate if the considered media type during content negotiation is a valid
+        /// candidate for a given media type value supported by the formatter.
+        /// </summary>
+        public virtual MediaTypeMatcher Matcher { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating that content-negotiation could not find a formatter based on the 
         /// information on the <see cref="Http.HttpRequest"/>.
         /// </summary>

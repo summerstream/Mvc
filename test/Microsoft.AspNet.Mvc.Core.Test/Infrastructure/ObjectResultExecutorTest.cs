@@ -233,7 +233,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
                 objectType: null,
                 @object: null);
 
-            context.HttpContext.Request.Headers[HeaderNames.Accept] = "text/custom, application/custom";
+            context.HttpContext.Request.Headers[HeaderNames.Accept] = "text/custom,application/custom";
 
             // Act
             var formatter = executor.SelectFormatter(
@@ -331,7 +331,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
         // Chrome & Opera
         [InlineData("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8", "application/json; charset=utf-8")]
         // IE
-        [InlineData("text/html, application/xhtml+xml, */*", "application/json; charset=utf-8")] 
+        [InlineData("text/html,application/xhtml+xml,*/*", "application/json; charset=utf-8")] 
         // Firefox & Safari
         [InlineData("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "application/json; charset=utf-8")]
         // Misc
@@ -368,7 +368,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
         // Chrome & Opera
         [InlineData("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8", "application/xml; charset=utf-8")]
         // IE
-        [InlineData("text/html, application/xhtml+xml, */*", "application/json; charset=utf-8")]
+        [InlineData("text/html,application/xhtml+xml,*/*", "application/json; charset=utf-8")]
         // Firefox & Safari
         [InlineData("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "application/xml; charset=utf-8")]
         // Misc

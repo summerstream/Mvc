@@ -48,7 +48,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
             Logger = loggerFactory.CreateLogger<ObjectResultExecutor>();
             WriterFactory = writerFactory.CreateWriter;
         }
-        
+
         /// <summary>
         /// Gets the <see cref="ILogger"/>.
         /// </summary>
@@ -108,7 +108,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
                 WriterFactory,
                 objectType,
                 result.Value);
-            
+
             var selectedFormatter = SelectFormatter(formatterContext, result.ContentTypes, formatters);
             if (selectedFormatter == null)
             {
@@ -121,7 +121,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
 
             Logger.FormatterSelected(selectedFormatter, formatterContext);
             Logger.ObjectResultExecuting(context);
-            
+
             result.OnFormatting(context);
             return selectedFormatter.WriteAsync(formatterContext);
         }
@@ -169,14 +169,14 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
             }
 
             var request = formatterContext.HttpContext.Request;
-            var acceptValues = PrepareAcceptValues(request.GetTypedHeaders().Accept);
 
             IOutputFormatter selectedFormatter = null;
-            if (contentTypes == null || contentTypes.Count == 0)
+            if (contentTypes.Count == 0)
             {
+                var matcher = new MediaTypeMatcher(request.Headers["Accept"], RespectBrowserAcceptHeader);
                 // Check if we have enough information to do content-negotiation, otherwise get the first formatter
                 // which can write the type. Let the formatter choose the Content-Type.
-                if (acceptValues == null || acceptValues.Count == 0)
+                if (!matcher.HasValidValues)
                 {
                     Logger.NoAcceptForNegotiation();
 
@@ -188,16 +188,16 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
                 //
 
                 // 1. Select based on sorted accept headers.
-                selectedFormatter = SelectFormatterUsingSortedAcceptHeaders(
+                selectedFormatter = SelectFormatterUsingAcceptHeaderMatcher(
                     formatterContext,
                     formatters,
-                    acceptValues);
+                    matcher);
 
                 // 2. No formatter was found based on Accept header. Fallback to the first formatter which can write
                 // the type. Let the formatter choose the Content-Type.
                 if (selectedFormatter == null)
                 {
-                    Logger.NoFormatterFromNegotiation(acceptValues);
+                    //Logger.NoFormatterFromNegotiation(acceptValues);
 
                     // Set this flag to indicate that content-negotiation has failed to let formatters decide
                     // if they want to write the response or not.
@@ -208,32 +208,13 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
             }
             else
             {
-                if (acceptValues != null && acceptValues.Count > 0)
+                var matcher = new MediaTypeMatcher(request.Headers["Accept"], RespectBrowserAcceptHeader, contentTypes);
+                if (matcher.HasValidValues)
                 {
-                    // Filter and remove accept headers which cannot support any of the user specified content types.
-                    // That is, confirm this result supports a more specific media type than requested e.g. OK if
-                    // "text/*" requested and result supports "text/plain".
-                    for (var i = acceptValues.Count - 1; i >= 0; i--)
-                    {
-                        var isCompatible = false;
-                        for (var j = 0; j < contentTypes.Count; j++)
-                        {
-                            if (contentTypes[j].IsSubsetOf(acceptValues[i]))
-                            {
-                                isCompatible = true;
-                            }
-                        }
-
-                        if (!isCompatible)
-                        {
-                            acceptValues.RemoveAt(i);
-                        }
-                    }
-
-                    selectedFormatter = SelectFormatterUsingSortedAcceptHeaders(
+                    selectedFormatter = SelectFormatterUsingAcceptHeaderMatcher(
                         formatterContext,
                         formatters,
-                        acceptValues);
+                        matcher);
                 }
 
                 if (selectedFormatter == null)
@@ -282,6 +263,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
             foreach (var formatter in formatters)
             {
                 formatterContext.ContentType = null;
+                formatterContext.Matcher = null;
                 if (formatter.CanWriteResult(formatterContext))
                 {
                     return formatter;
@@ -305,10 +287,10 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
         /// <returns>
         /// The selected <see cref="IOutputFormatter"/> or <c>null</c> if no formatter can write the response.
         /// </returns>
-        protected virtual IOutputFormatter SelectFormatterUsingSortedAcceptHeaders(
+        protected virtual IOutputFormatter SelectFormatterUsingAcceptHeaderMatcher(
             OutputFormatterWriteContext formatterContext,
             IList<IOutputFormatter> formatters,
-            IList<MediaTypeHeaderValue> sortedAcceptHeaders)
+            MediaTypeMatcher matcher)
         {
             if (formatterContext == null)
             {
@@ -320,22 +302,23 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
                 throw new ArgumentNullException(nameof(formatters));
             }
 
-            if (sortedAcceptHeaders == null)
+            if (matcher == null)
             {
-                throw new ArgumentNullException(nameof(sortedAcceptHeaders));
+                throw new ArgumentNullException(nameof(matcher));
             }
-            
-            foreach (var contentType in sortedAcceptHeaders)
+
+            formatterContext.Matcher = matcher;
+
+            do
             {
                 foreach (var formatter in formatters)
                 {
-                    formatterContext.ContentType = contentType;
                     if (formatter.CanWriteResult(formatterContext))
                     {
                         return formatter;
                     }
                 }
-            }
+            } while (matcher.Next());
 
             return null;
         }
@@ -374,6 +357,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
                 throw new ArgumentNullException(nameof(acceptableContentTypes));
             }
 
+            formatterContext.Matcher = null;
             foreach (var formatter in formatters)
             {
                 foreach (var contentType in acceptableContentTypes)
@@ -466,7 +450,7 @@ namespace Microsoft.AspNet.Mvc.Infrastructure
                     }
                 }
             }
-            
+
             // We want a descending sort, but BinarySearch does ascending
             sorted.Reverse();
             return sorted;
