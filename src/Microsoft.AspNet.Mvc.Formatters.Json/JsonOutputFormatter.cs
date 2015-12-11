@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc.Internal;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using Microsoft.Net.Http.Headers;
 
 namespace Microsoft.AspNet.Mvc.Formatters
 {
@@ -16,6 +18,7 @@ namespace Microsoft.AspNet.Mvc.Formatters
     public class JsonOutputFormatter : OutputFormatter
     {
         private JsonSerializerSettings _serializerSettings;
+        private readonly IDictionary<Tuple<MediaTypeHeaderValue, Encoding>, string> _contentTypes = new Dictionary<Tuple<MediaTypeHeaderValue, Encoding>, string>();
 
         // Perf: JsonSerializers are relatively expensive to create, and are thread safe. We cache
         // the serializer and invalidate it when the settings change.
@@ -39,6 +42,16 @@ namespace Microsoft.AspNet.Mvc.Formatters
             SupportedEncodings.Add(Encoding.Unicode);
             SupportedMediaTypes.Add(MediaTypeHeaderValues.ApplicationJson);
             SupportedMediaTypes.Add(MediaTypeHeaderValues.TextJson);
+
+            foreach (var mt in SupportedMediaTypes)
+            {
+                foreach (var encoding in SupportedEncodings)
+                {
+                    var mediaTypeWithEncoding = mt.Copy();
+                    mediaTypeWithEncoding.Encoding = encoding;
+                    _contentTypes.Add(Tuple.Create(mediaTypeWithEncoding, encoding), mediaTypeWithEncoding.ToString());
+                }
+            }
         }
 
         /// <summary>
@@ -112,6 +125,17 @@ namespace Microsoft.AspNet.Mvc.Formatters
             }
 
             return _serializer;
+        }
+
+        public override void WriteResponseHeaders(OutputFormatterWriteContext context)
+        {
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+
+            var response = context.HttpContext.Response;
+            response.ContentType = _contentTypes[Tuple.Create(context.ContentType, context.ContentType.Encoding)];
         }
 
         public override Task WriteResponseBodyAsync(OutputFormatterWriteContext context)
