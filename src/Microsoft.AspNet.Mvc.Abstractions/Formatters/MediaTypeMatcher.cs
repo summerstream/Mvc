@@ -56,18 +56,48 @@ namespace Microsoft.AspNet.Mvc.Formatters
             public IList<StringSegment> parameters;
             public double quality;
 
-            public bool MediaTypeMatches(string value)
+            public bool MediaTypeMatches(string mediaTypeValue)
             {
-                return mediaType.HasValue &&
-                    (mediaType.StartsWith("*", StringComparison.OrdinalIgnoreCase) ||
-                     mediaType.Equals(value));
-            }
+                var hasValues = mediaType.HasValue && subtype.HasValue;
 
-            public bool SubtypeMatches(string value)
-            {
-                return subtype.HasValue &&
-                    (subtype.StartsWith("*", StringComparison.OrdinalIgnoreCase) ||
-                     subtype.Equals(value));
+                if (!hasValues || mediaTypeValue.Length != mediaType.Length + subtype.Length + 1)
+                {
+                    return false;
+                }
+
+                var mediaTypeMatches = mediaType.StartsWith("*", StringComparison.OrdinalIgnoreCase);
+                if (!mediaTypeMatches)
+                {
+                    var matches = true;
+                    for (int i = 0; i < mediaType.Length; i++)
+                    {
+                        if (char.ToLower(mediaType.Buffer[mediaType.Offset + i]) != char.ToLower(mediaTypeValue[i]))
+                        {
+                            matches = false;
+                            break;
+                        }
+                    }
+
+                    mediaTypeMatches = mediaTypeMatches || matches;
+                }
+
+                var subtypeMatches = subtype.StartsWith("*", StringComparison.OrdinalIgnoreCase);
+                if (!subtypeMatches)
+                {
+                    var matches = true;
+                    for (int i = 0; i < subtype.Length; i++)
+                    {
+                        if (char.ToLower(subtype.Buffer[subtype.Offset + i]) != char.ToLower(mediaTypeValue[i + mediaType.Length + 1]))
+                        {
+                            matches = false;
+                            break;
+                        }
+                    }
+
+                    subtypeMatches = subtypeMatches || matches;
+                }
+
+                return hasValues && mediaTypeMatches && subtypeMatches;
             }
 
             public override string ToString()
@@ -102,8 +132,7 @@ namespace Microsoft.AspNet.Mvc.Formatters
 
         private bool IsSuperSetOf(MediaTypeCandidate candidate, MediaTypeHeaderValue mediaType)
         {
-            return candidate.MediaTypeMatches(mediaType.Type) &&
-                candidate.SubtypeMatches(mediaType.SubType) &&
+            return candidate.MediaTypeMatches(mediaType.MediaType) &&
                 ParametersAreASupersetOf(candidate.parameters, mediaType.Parameters);
         }
 
