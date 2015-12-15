@@ -23,7 +23,6 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
         public ViewComponentContext()
         {
             ViewComponentDescriptor = new ViewComponentDescriptor();
-            Arguments = new object[0];
             ViewContext = new ViewContext();
         }
 
@@ -38,7 +37,7 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
         /// <param name="writer">The <see cref="TextWriter"/> for writing output.</param>
         public ViewComponentContext(
             ViewComponentDescriptor viewComponentDescriptor,
-            object[] arguments,
+            object arguments,
             HtmlEncoder htmlEncoder,
             ViewContext viewContext,
             TextWriter writer)
@@ -46,11 +45,6 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
             if (viewComponentDescriptor == null)
             {
                 throw new ArgumentNullException(nameof(viewComponentDescriptor));
-            }
-
-            if (arguments == null)
-            {
-                throw new ArgumentNullException(nameof(arguments));
             }
 
             if (htmlEncoder == null)
@@ -87,7 +81,7 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
         /// <remarks>
         /// The property setter is provided for unit test purposes only.
         /// </remarks>
-        public object[] Arguments { get; set; }
+        public object Arguments { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="HtmlEncoder"/>.

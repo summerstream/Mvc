@@ -9,20 +9,12 @@ namespace Microsoft.AspNet.Mvc
 {
     public interface IViewComponentHelper
     {
-        IHtmlContent Invoke(string name, params object[] args);
+        Task<IHtmlContent> InvokeAsync(string name, object arguments);
 
-        IHtmlContent Invoke(Type componentType, params object[] args);
+        Task<IHtmlContent> InvokeAsync(Type componentType, object arguments);
 
-        void RenderInvoke(string name, params object[] args);
+        Task RenderInvokeAsync(string name, object arguments);
 
-        void RenderInvoke(Type componentType, params object[] args);
-
-        Task<IHtmlContent> InvokeAsync(string name, params object[] args);
-
-        Task<IHtmlContent> InvokeAsync(Type componentType, params object[] args);
-
-        Task RenderInvokeAsync(string name, params object[] args);
-
-        Task RenderInvokeAsync(Type componentType, params object[] args);
+        Task RenderInvokeAsync(Type componentType, object arguments);
     }
 }

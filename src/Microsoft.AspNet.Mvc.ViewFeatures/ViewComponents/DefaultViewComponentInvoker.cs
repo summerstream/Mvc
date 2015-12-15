@@ -12,6 +12,7 @@ using Microsoft.AspNet.Mvc.Diagnostics;
 using Microsoft.AspNet.Mvc.Infrastructure;
 using Microsoft.AspNet.Mvc.ViewFeatures;
 using Microsoft.AspNet.Mvc.ViewFeatures.Logging;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNet.Mvc.ViewComponents
@@ -55,27 +56,6 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
             _logger = logger;
         }
 
-        public void Invoke(ViewComponentContext context)
-        {
-            if (context == null)
-            {
-                throw new ArgumentNullException(nameof(context));
-            }
-
-            var method = ViewComponentMethodSelector.FindSyncMethod(
-                context.ViewComponentDescriptor.Type.GetTypeInfo(),
-                context.Arguments);
-            if (method == null)
-            {
-                throw new InvalidOperationException(
-                    Resources.FormatViewComponent_CannotFindMethod(ViewComponentMethodSelector.SyncMethodName));
-            }
-
-            var result = InvokeSyncCore(method, context);
-
-            result.Execute(context);
-        }
-
         public async Task InvokeAsync(ViewComponentContext context)
         {
             if (context == null)
@@ -85,16 +65,12 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
 
             IViewComponentResult result;
 
-            var asyncMethod = ViewComponentMethodSelector.FindAsyncMethod(
-                context.ViewComponentDescriptor.Type.GetTypeInfo(),
-                context.Arguments);
+            var asyncMethod = ViewComponentMethodSelector.FindAsyncMethod(context.ViewComponentDescriptor.Type);
             if (asyncMethod == null)
             {
                 // We support falling back to synchronous if there is no InvokeAsync method, in this case we'll still
                 // execute the IViewResult asynchronously.
-                var syncMethod = ViewComponentMethodSelector.FindSyncMethod(
-                    context.ViewComponentDescriptor.Type.GetTypeInfo(),
-                    context.Arguments);
+                var syncMethod = ViewComponentMethodSelector.FindSyncMethod(context.ViewComponentDescriptor.Type);
                 if (syncMethod == null)
                 {
                     throw new InvalidOperationException(
@@ -150,8 +126,10 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
                 _diagnosticSource.BeforeViewComponent(context, component);
                 _logger.ViewComponentExecuting(context);
 
+                var argumentDictionary = PropertyHelper.ObjectToDictionary(context.Arguments);
+
                 var startTime = Environment.TickCount;
-                var result = await ControllerActionExecutor.ExecuteAsync(method, component, context.Arguments);
+                var result = await ControllerActionExecutor.ExecuteAsync(method, component, argumentDictionary);
 
                 var viewComponentResult = CoerceToViewComponentResult(result);
                 _logger.ViewComponentExecuted(context, startTime, viewComponentResult);
@@ -179,11 +157,13 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
             {
                 _diagnosticSource.BeforeViewComponent(context, component);
                 _logger.ViewComponentExecuting(context);
-
+                var indexedArguments = ControllerActionExecutor.PrepareArguments(
+                    PropertyHelper.ObjectToDictionary(context.Arguments),
+                    method.GetParameters());
                 try
                 {
                     var startTime = Environment.TickCount;
-                    var result = method.Invoke(component, context.Arguments);
+                    var result = method.Invoke(component, indexedArguments);
 
                     var viewComponentResult = CoerceToViewComponentResult(result);
                     _logger.ViewComponentExecuted(context, startTime, viewComponentResult);

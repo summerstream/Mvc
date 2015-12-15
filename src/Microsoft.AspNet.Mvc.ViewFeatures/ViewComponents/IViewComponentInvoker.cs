@@ -7,8 +7,6 @@ namespace Microsoft.AspNet.Mvc.ViewComponents
 {
     public interface IViewComponentInvoker
     {
-        void Invoke(ViewComponentContext context);
-
         Task InvokeAsync(ViewComponentContext context);
     }
 }
