@@ -1,4 +1,4 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -11,11 +11,11 @@ using Microsoft.AspNet.Mvc.Internal;
 
 namespace Microsoft.AspNet.Mvc.ViewFeatures
 {
-    public class ValidateAntiforgeryTokenAuthorizationFilter : IAsyncAuthorizationFilter, IAntiforgeryPolicy
+    public class AutoValidateAntiforgeryTokenAuthorizationFilter : IAsyncAuthorizationFilter, IAntiforgeryPolicy
     {
         private readonly IAntiforgery _antiforgery;
 
-        public ValidateAntiforgeryTokenAuthorizationFilter(IAntiforgery antiforgery)
+        public AutoValidateAntiforgeryTokenAuthorizationFilter(IAntiforgery antiforgery)
         {
             if (antiforgery == null)
             {
@@ -32,12 +32,27 @@ namespace Microsoft.AspNet.Mvc.ViewFeatures
                 throw new ArgumentNullException(nameof(context));
             }
 
-            if (IsClosestAntiforgeryPolicy(context.Filters))
+            if (IsUnsafeHttpMethod(context) && IsClosestAntiforgeryPolicy(context.Filters))
             {
                 return _antiforgery.ValidateRequestAsync(context.HttpContext);
             }
 
             return TaskCache.CompletedTask;
+        }
+
+        private bool IsUnsafeHttpMethod(AuthorizationContext context)
+        {
+            var method = context.HttpContext.Request.Method;
+            if (string.Equals("GET", method, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals("HEAD", method, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals("TRACE", method, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals("OPTIONS", method, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // Assume anything we know isn't safe is unsafe.
+            return true;
         }
 
         private bool IsClosestAntiforgeryPolicy(IList<IFilterMetadata> filters)
