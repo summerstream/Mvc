@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using Microsoft.AspNet.Mvc.Rendering;
@@ -95,16 +96,27 @@ namespace Microsoft.AspNet.Mvc.Localization
                 throw new ArgumentNullException(nameof(viewContext));
             }
 
+            // Given a view path "/Views/Home/Index.cshtml" we want a baseName like "MyApplication.Views.Home.Index"
+
             // Trim the file extension from the end of the path
             var path = viewContext.ExecutingFilePath;
-            if (Path.HasExtension(path))
+            if (!string.IsNullOrEmpty(path) && Path.HasExtension(path))
             {
                 var extension = Path.GetExtension(path);
                 path = path.Substring(0, path.Length - extension.Length);
             }
 
+            if (string.IsNullOrEmpty(path))
+            {
+                path = viewContext.View.Path;
+            }
+
+            Debug.Assert(!string.IsNullOrEmpty(path), "Couldn't determine a path for the view");
+
             var baseName = path.Replace('/', '.').Replace('\\', '.');
             baseName = baseName.TrimStart('.');
+
+            // Prepend the application name
             baseName = _applicationName + "." + baseName;
 
             _localizer = _localizerFactory.Create(baseName, _applicationName);
